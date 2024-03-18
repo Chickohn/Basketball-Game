@@ -28,6 +28,11 @@ public class Throw : MonoBehaviour
 
     void Update()
     {
+        frameCounter++;
+        // if (frameCounter % 5000 == 0)
+        // {
+        //     Debug.Log("bounciness: " + GetComponent<Collider>().material.bounciness.ToString());
+        // }
         if (!shotInProgress) {
             if (Input.GetMouseButtonDown(0) && !isDragging)
             {
@@ -75,13 +80,12 @@ public class Throw : MonoBehaviour
         transform.position = curPosition;
 
         // Increment the frame counter
-        frameCounter++;
 
-        // Every ten frames, add the current mouse position to the queue
-        if (frameCounter >= 25)
+        // Every twenty-five frames, add the current mouse position to the queue
+        if (frameCounter % 25 == 0)
         {
             AddMousePosition(Input.mousePosition);
-            frameCounter = 0; // Reset the frame counter
+            // frameCounter = 0; // Reset the frame counter
         }
     }
 
@@ -95,7 +99,7 @@ public class Throw : MonoBehaviour
         // This assumes the averageVelocity.y (vertical swipe component) determines the forward (X-axis) force magnitude.
         Vector3 throwVelocity = new Vector3(Mathf.Abs(averageVelocity.y), averageVelocity.y, -averageVelocity.x) * sensitivity; // Moves the ball along the X-axis
 
-        Debug.Log("Throw Velocity: " + throwVelocity + ", Average Velocity: " + averageVelocity);
+        // Debug.Log("Throw Velocity: " + throwVelocity + ", Average Velocity: " + averageVelocity);
         rb.AddForce(throwVelocity, ForceMode.Impulse);
     }
 
@@ -117,7 +121,7 @@ public class Throw : MonoBehaviour
         {
             positionsString += position.ToString() + " | ";
         }
-        Debug.Log(positionsString);
+        // Debug.Log(positionsString);
         Vector3 sumOfDifferences = Vector3.zero;
         Vector3 previousPosition = mousePositions.Peek(); // Get the oldest position without removing it
         foreach (var position in mousePositions)
@@ -127,24 +131,46 @@ public class Throw : MonoBehaviour
         }
 
         float totalTime = Time.time - startTime;
-        Debug.Log(totalTime);
+        // Debug.Log(totalTime);
         return (sumOfDifferences / mousePositions.Count) * sensitivity / 0.15f;// totalTime;
     }
 
     void OnTriggerEnter(Collider other)
     {
+        if (other.gameObject.tag == "RimWarn")
+        {
+            StartCoroutine(LowerBounciness(0.25f));
+        }
         if (!isDragging && !resetInProgress) { // Check resetInProgress flag
             if (other.gameObject.CompareTag("Hoop Top")) {
                 scoreManager.IncrementScore(); // Increment Score
             }
             if (other.gameObject.CompareTag("Floor")) {
                 StartCoroutine(ResetBasketball());
-                Debug.Log("Resetting");
+                // Debug.Log("Resetting");
             }
             StartCoroutine(ResetBasketball());  // Reset the basketball after a delay
         }
     }
 
+    IEnumerator LowerBounciness(float bounce)
+    {
+        // Access the collider's material.
+        var colliderMaterial = GetComponent<Collider>().material;
+        
+        // Check if the material exists.
+        if (colliderMaterial != null)
+        {
+            // Change the bounciness property.
+            colliderMaterial.bounciness = bounce;
+            Debug.Log("bounciness: " + GetComponent<Collider>().material.bounciness.ToString());
+            
+            yield return new WaitForSeconds(0.5f);
+
+            colliderMaterial.bounciness = 0.5f;
+            Debug.Log("bounciness: " + GetComponent<Collider>().material.bounciness.ToString());
+        }
+    }
 
     IEnumerator ResetBasketball()
     {
